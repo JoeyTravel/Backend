@@ -20,5 +20,43 @@ import com.twitter.util._
 object ClownCarServer extends ExpediteServer with EnvironmentMatchers {
   import ExpediteFlags._
 
-  
+  private[this] val environment =
+    flag[ExpediteEnvironment.Value](
+      "server.environment",
+      ExpediteEnvironment.Development,
+      "Environment to start"
+    )
+
+  private[this] val kafkaServers =
+    flag(
+      "kafka.servers",
+      "localhost:9092",
+      "comma separated list of kafka server:ports - kafka configuration value bootstrap.servers"
+    )
+
+  protected[this] val dynamoTable   = flag("aws.dynamo_table", "dev_app_env", "Dyanmo table to use")
+  protected[this] val dynamoRegion  = flag("aws.dynamo_region", "us-west-2", "Dynamo region to use")
+  protected[this] val databaseUrl   =
+    flag(
+      "db.url",
+      "jdbc:postgresql://127.0.0.1:5432/expedite_dev?user=postgres&password=postgress",
+      "Database URL to connect to"
+    )
+
+  def main(): Unit = {
+    log.info("VROOM VROOM...")
+    val s3Access = S3AccessFactory(environment(), statsReceiver)
+    val (logBucket, sfUserName, sfPassword) =
+      getDynamoConfigVals(
+        environment(),
+        dynamoTable(),
+        dynamoRegion()
+      )
+
+    val archiveLibrary          = new S3BackedLoanArchiveLibrary(logBucket, s3Access)
+    val SalesforceClient        = resolveSalesforceClient(environment(), sfUserName, sfPassword)
+    val PollingSalesforceTester = new PollingSalesforceTester(sfUserName, salesforceClient, statsReceiver)
+
+    val platformListener        = 
+  }
 }
