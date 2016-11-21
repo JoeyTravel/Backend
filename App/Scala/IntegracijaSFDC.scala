@@ -57,6 +57,95 @@ object ClownCarServer extends ExpediteServer with EnvironmentMatchers {
     val SalesforceClient        = resolveSalesforceClient(environment(), sfUserName, sfPassword)
     val PollingSalesforceTester = new PollingSalesforceTester(sfUserName, salesforceClient, statsReceiver)
 
-    val platformListener        = 
+    val platformListener        = PlatformEventListener.withProcessors(
+      kafkaServerName         = kafkaServers(),
+      kafkaGroupIdName        = "clownCarListener",
+      processors              = makeProcessors(archiveLibrary, salesforceClient),
+      statsReceiver           = statsReceiver
+    )
+
+    val Executor        = Executors.newSingleThreadExecutor()
+    val futurePool      = FuturePool(executor)
+    val listenerFuture  = futurePool(platformListener.run())
+
+    onExit {
+      log.info("onExit - the car's done!")
+      Await.ready(salesforceClient.close())
+      Await.ready(platformListener.close())
+      executor.shutdown()
+    }
+
+    PollingSalesforceTester.start()
+    Await.ready(listenerFuture)
   }
+
+  private[this] def makeProcessors(
+    archiveLibrary: S3BackedLoanArchiveLibrary,
+    salesforceClient: salesforceClient
+  ) = {
+    val dbTables = DatabaseTables(databaseUrl(), statsReceiver)
+    val loanSnapshotProcessor = SalesforceLoanSnapshotProcessor.asynchronously(
+      salesforceClient,
+      archiveLibrary,
+      statsReceiver
+    )
+
+    val updateLoanSpecialistProcessor = new UpdateLoanSpecialistProcessor(
+      salesforceClient,
+      dbTables,
+      statsReceiver
+    )
+
+    val updateLeadActivationTokenProcessor = new UpdateLeadActivationTokenProcessor(
+      salesforceClient,
+      dbTables,
+      statsReceiver
+    )
+
+    val updateLeadContactPrefsProcessor = new UpdateLeadContactPrefsProcessor(
+      salesforceClient,
+      dbTables,
+      statsReceiver
+    )
+
+    val updateLeadInPortalStatusProcessor = new UpdateLeadInPortalStatusProcessor(
+      salesforceClient,
+      dbTables,
+      statsReceiver
+    )
+
+    val updateLeadCreditPulledStatusProcessor = new UpdateLeadInPortalStatusProcessor(
+      salesforceClient,
+      statsReceiver
+    )
+
+    Seq(
+      loanSnapshotProcessor,
+      updateLoanSpecialistProcessor,
+      updateLeadActivationTokenProcessor,
+      updateLeadContactPrefsProcessor,
+      updateLeadInPortalStatusProcessor,
+      updateLeadCreditPulledStatusProcessor
+    )
+  }
+
+  private[this] def getDynamoConfigVals(
+    env: ExpediteEnvironment.Value,
+    dynamoTable: String,
+    dynamoRegion: String
+  ): (String, String, String) = {
+    val dynamoVals = new DynamoDBBackedSimpleConfig(
+      table       = dynamoTable,
+      region      = dynamoRegion,
+      credentials = awsCredentials(env.name)
+    )
+
+    (
+      dynamoVals.get[String]("LOG_DATA_BUCKET"),
+      dynamoVals.get[String]("SALESFORCE_USERNAME"),
+      dynamoVals.get[String]("SALESFORCE_PASSWORD")
+    )
+  }
+
+  
 }
