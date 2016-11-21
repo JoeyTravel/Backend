@@ -3,8 +3,8 @@
  * JDBC - Java Database Connectivity (JDBC) is an application programming interface (API) for the programming language Java, which defines how a client may access a database. 
  
 
-  NetRange:       127.0.0.0 - 127.255.255.255
-  CIDR:           127.0.0.0/8
+ * NetRange:       127.0.0.0 - 127.255.255.255
+ * CIDR:           127.0.0.0/8
   NetName:        SPECIAL-IPV4-LOOPBACK-IANA-RESERVED
   NetHandle:      NET-127-0-0-0-1
   Parent:          ()
@@ -20,3 +20,5 @@
   Comment:        be found here:
   Comment:        http://datatracker.ietf.org/doc/rfc1122
   Ref:            https://whois.arin.net/rest/net/NET-127-0-0-0-1
+
+ * https://app.anyguide.com/#/welcome
