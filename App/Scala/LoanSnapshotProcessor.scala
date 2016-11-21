@@ -95,4 +95,13 @@ class SalesforceLoanSnapshotProcessor(
     }
 
     // TODO: Update opportunity with more fields based on snapshot
+    private[this] def resolveOpportunityUpdate(
+      lqbSnapshot: events.LendingQbSnapshot,
+      opportunityOpt: Option[sobject.Opportunity]
+    ): Option[sobject.Opportunity] =
+      opportunityOpt.map { opportunityToUpdate =>
+        opportunityToUpdate.setStageName(lqbSnapshot.currentLoanStatus.name)
+
+        opportunityToUpdate
+      }
 }
