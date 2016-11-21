@@ -147,5 +147,34 @@ object ClownCarServer extends ExpediteServer with EnvironmentMatchers {
     )
   }
 
-  
+  private[this] def resolveSalesforceClient(
+    environment: ExpediteEnvironment.Value,
+    sfUserName: String,
+    sfPassword: String
+  ): SalesforceClient = {
+    val client = SalesforceClient(sfUserName, sfPassword, environment, statsReceiver)
+    client.login()
+    client
+  }
+
+  override def logerFactories: List[LoggerFactory] = {
+    val baseConfig = LoggingConfig(
+      environment = environment().name,
+      baseLogFile = "clown-car.log",
+      maxLogSize  = 100.megabytes,
+      nodes       = Nil
+    )
+
+    val config = environment() match {
+      case ExpediteEnvironment.Development =>
+        baseConfig.copy(level = Level.DEBUG)
+
+      case _ =>
+        baseConfig.copy(
+          logDir = "/var/log/clara/clown-car"
+        )
+    }
+
+    config.factories
+  }
 }
