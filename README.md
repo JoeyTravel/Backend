@@ -22,3 +22,7 @@
  * Ref:            https://whois.arin.net/rest/net/NET-127-0-0-0-1
 
  * https://app.anyguide.com/#/welcome
+
+# Quick Links
+
+ * [AWS Credits and Setup](https://docs.google.com/document/d/1cJH5Cmp-wLgcqkzrrIfjN8A6UN84AK0a5ILEAmqI8yw/edit)
